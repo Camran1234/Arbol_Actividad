@@ -1,0 +1,96 @@
+package com.mycompanyeans.parser;
+import com.mycompanyeans.arbol_derivacion.Principal;
+import com.mycompanyeans.parser.*;
+import java.util.ArrayList;
+import com.mycompanyeans.arbol_derivacion.*;
+import java_cup.runtime.XMLElement;
+import java_cup.runtime.Symbol;
+import java_cup.runtime.XMLElement;
+
+parser code {:
+        Principal lista;
+        ArrayList<Funcion> procedimientos = new ArrayList();
+        
+        public Principal getPrincipal(){
+                return lista;
+        }
+
+        public ArrayList<Funcion> getProcedimientos(){
+                return procedimientos;
+        }
+
+:}
+
+terminal OPEN_PARENTHESIS, CLOSE_PARENTHESIS, COLON, SEMI_COLON, PROCEDIMIENTO, BEGIN, NUMERO, SIMBOLO, END, PROGRAMA, INTEGER, PARAM, EQUAL;
+
+non terminal s,  begin, procedimientos, chance;
+
+
+non terminal String value;
+non terminal Metodo metodo, variables, assign;
+non terminal ArrayList<Metodo> instruction;
+non terminal Funcion procedimiento;
+start with  s;
+
+value ::= SIMBOLO:f {:RESULT = f.toString();:}
+        |NUMERO:f {:RESULT = f.toString();:}
+        |PARAM:f {:RESULT = f.toString();:}
+        |/*empty*/ {:RESULT = "";:}
+        ;
+
+s ::= PROGRAMA SIMBOLO procedimientos begin
+        ;
+
+variables ::= SIMBOLO SEMI_COLON assign:met {:
+                
+                if(met!=null){
+                        RESULT =  met;
+                }
+
+                :}
+            ;
+
+assign ::=  INTEGER COLON
+            |EQUAL metodo:m {: RESULT =  m; :};
+
+chance ::= COLON
+        |/*empty*/;
+
+//Este es el metodo
+metodo ::= SIMBOLO:sim OPEN_PARENTHESIS value:val CLOSE_PARENTHESIS chance 
+        {:
+                Metodo resultado = new Metodo(sim.toString());
+                resultado.setParam(val.toString());
+                RESULT =  resultado;
+        :}
+            ;
+
+instruction ::= variables:var instruction: ins {:
+                ArrayList<Metodo> listaInstruction = ins;
+                if(var!=null){
+                        listaInstruction.add(var);
+                }
+                RESULT =  listaInstruction;
+                :}
+            |metodo:met instruction:ins{:
+                ArrayList<Metodo> listaInstruction = ins;
+                listaInstruction.add(met);
+                RESULT =  listaInstruction;
+                :}
+            |END {: ArrayList<Metodo> met = new ArrayList(); RESULT =  met;:}
+            ;
+
+begin ::= BEGIN instruction:ins {:
+        lista = new Principal(ins, "");
+        :}
+        ;
+
+procedimientos ::= procedimiento:proc procedimientos {: procedimientos.add(proc); :}
+                |/*empty*/
+                ;
+
+procedimiento ::= PROCEDIMIENTO SIMBOLO:sym OPEN_PARENTHESIS PARAM CLOSE_PARENTHESIS instruction:ins {:
+                Funcion funcion = new Funcion(ins, sym.toString());
+                RESULT =  funcion;
+                :}
+        ;
